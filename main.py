@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, send_from_directory, current_app, abort, session, flash, redirect
 from models import QuestionPaper, AdminNotification, DiscussionPost, StudentAIChat, Student
-from extensions import db, csrf
+from extensions import db, csrf, get_upload_path
 import os
 import urllib.request
 import urllib.error
@@ -101,7 +101,7 @@ def api_papers_bookmarks():
 @main_bp.route('/view/<int:paper_id>')
 def view_paper(paper_id):
     paper = QuestionPaper.query.get_or_404(paper_id)
-    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], paper.filename)
+    file_path = get_upload_path(paper.filename)
     if not os.path.isfile(file_path):
         abort(404)
     try:
@@ -110,8 +110,8 @@ def view_paper(paper_id):
     except Exception:
         db.session.rollback()
     return send_from_directory(
-        current_app.config['UPLOAD_FOLDER'],
-        paper.filename,
+        os.path.dirname(file_path),
+        os.path.basename(file_path),
         mimetype='application/pdf',
         as_attachment=False,
     )
@@ -120,7 +120,7 @@ def view_paper(paper_id):
 @main_bp.route('/download/<int:paper_id>')
 def download_paper(paper_id):
     paper = QuestionPaper.query.get_or_404(paper_id)
-    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], paper.filename)
+    file_path = get_upload_path(paper.filename)
     if not os.path.isfile(file_path):
         abort(404)
     try:
@@ -143,8 +143,8 @@ def download_paper(paper_id):
             db.session.rollback()
 
     return send_from_directory(
-        current_app.config['UPLOAD_FOLDER'],
-        paper.filename,
+        os.path.dirname(file_path),
+        os.path.basename(file_path),
         as_attachment=True,
         download_name=paper.original_name or paper.filename,
     )
@@ -354,7 +354,7 @@ def ai_study_guide():
     
     # Extract context text from PDF if it exists
     pdf_text = ""
-    file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], paper.filename)
+    file_path = get_upload_path(paper.filename)
     if os.path.isfile(file_path):
         try:
             with pdfplumber.open(file_path) as pdf:
