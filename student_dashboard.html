@@ -1,0 +1,746 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard — {{ student.display_name or student.username }}{% endblock %}
+
+{% block content %}
+<style>
+  .dash-page {
+    padding: 2rem 2rem 4rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* Profile Header */
+  .dash-profile {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  @keyframes fadeSlideUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .dash-avatar {
+    width: 72px; height: 72px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+  }
+
+  .dash-profile-info h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--text-hi);
+    margin: 0;
+  }
+  .dash-profile-meta {
+    font-size: 0.82rem;
+    color: var(--text-mid);
+    margin-top: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .dash-logout-btn {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #ff453a;
+    background: rgba(255, 69, 58, 0.1);
+    border: 1px solid rgba(255, 69, 58, 0.2);
+    padding: 0.35rem 0.85rem;
+    border-radius: 8px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .dash-logout-btn:hover { background: rgba(255, 69, 58, 0.2); }
+
+  /* Stats Row */
+  .dash-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .stat-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.25rem;
+    text-align: center;
+    transition: border-color 0.3s, transform 0.3s;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  .stat-card:nth-child(2) { animation-delay: 0.05s; }
+  .stat-card:nth-child(3) { animation-delay: 0.1s; }
+  .stat-card:nth-child(4) { animation-delay: 0.15s; }
+  .stat-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-3px);
+  }
+
+  .stat-value {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--apple-blue), var(--apple-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .stat-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 0.3rem;
+  }
+
+  /* Section Title */
+  .dash-section-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-hi);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Badges */
+  .dash-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+  }
+  .badge-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 0.5rem 0.85rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-mid);
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .badge-pill.earned {
+    background: rgba(52, 199, 89, 0.08);
+    border-color: rgba(52, 199, 89, 0.25);
+    color: #6ee7b7;
+  }
+  .badge-pill.locked {
+    opacity: 0.4;
+  }
+  .badge-pill .badge-icon { font-size: 1.1rem; }
+
+  /* Dual column layout */
+  .dash-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+  }
+  @media (max-width: 768px) {
+    .dash-columns { grid-template-columns: 1fr; }
+  }
+
+  /* Activity Feed */
+  .activity-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+  .activity-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+  }
+  .activity-detail { flex: 1; }
+  .activity-time {
+    font-size: 0.68rem;
+    color: var(--text-lo);
+    white-space: nowrap;
+  }
+  .activity-points {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #34c759;
+  }
+
+  /* Saved Papers Mini Cards */
+  .saved-papers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+  }
+  .saved-paper-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 0.85rem;
+    transition: border-color 0.2s, transform 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+  }
+  .saved-paper-card:hover {
+    border-color: rgba(0, 122, 255, 0.3);
+    transform: translateY(-2px);
+  }
+  .saved-paper-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--text-hi);
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .saved-paper-meta {
+    font-size: 0.7rem;
+    color: var(--text-lo);
+  }
+
+  .empty-state-msg {
+    font-size: 0.85rem;
+    color: var(--text-lo);
+    text-align: center;
+    padding: 2rem 1rem;
+    font-style: italic;
+  }
+
+  /* Quick Links */
+  .dash-links {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+  .dash-link-btn {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-mid);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .dash-link-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-hi);
+  }
+</style>
+
+<div class="dash-page">
+
+  <!-- ── Profile Header ──────────────────────────────────────────────────── -->
+  <div class="dash-profile">
+    <div class="dash-avatar" style="background: {{ student.avatar_color }};">
+      {{ student.get_initials() }}
+    </div>
+    <div class="dash-profile-info">
+      <h1>{{ student.display_name or student.username }}</h1>
+      <div class="dash-profile-meta">
+        <span>@{{ student.username }}</span>
+        <span>•</span>
+        <span>{{ student.email }}</span>
+        <span>•</span>
+        <span>Joined {{ student.created_at.strftime('%d %b %Y') }}</span>
+        <a href="/student/logout" class="dash-logout-btn">Logout</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Quick Links ─────────────────────────────────────────────────────── -->
+  <div class="dash-links">
+    <a href="/" class="dash-link-btn">🔍 Browse Papers</a>
+    <a href="/contribute" class="dash-link-btn">📤 Upload Paper</a>
+    <a href="/student/planner" class="dash-link-btn">📅 Study Planner</a>
+    <a href="/leaderboard" class="dash-link-btn">🏆 Leaderboard</a>
+  </div>
+
+  <!-- ── Stats Cards ─────────────────────────────────────────────────────── -->
+  <div class="dash-stats">
+    <div class="stat-card">
+      <div class="stat-value">{{ student.points }}</div>
+      <div class="stat-label">Total Points</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ bookmark_count }}</div>
+      <div class="stat-label">Papers Saved</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ discussion_count }}</div>
+      <div class="stat-label">Discussions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ earned_badges|length }}</div>
+      <div class="stat-label">Badges Earned</div>
+    </div>
+  </div>
+
+  <!-- ── Badges Showcase ─────────────────────────────────────────────────── -->
+  <div class="dash-section-title">🏅 Badges</div>
+  <div class="dash-badges">
+    {% set earned_badge_ids = earned_badges | map(attribute='badge') | map(attribute='id') | list %}
+    {% for badge in all_badges %}
+      {% if badge.id in earned_badge_ids %}
+        <div class="badge-pill earned" title="{{ badge.description }}">
+          <span class="badge-icon">{{ badge.icon }}</span>
+          {{ badge.name }}
+        </div>
+      {% else %}
+        <div class="badge-pill locked" title="{{ badge.description }} (Locked)">
+          <span class="badge-icon">🔒</span>
+          {{ badge.name }}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <!-- ── Dual Columns: Activity + Saved Papers ───────────────────────────── -->
+  <div class="dash-columns">
+    <!-- Activity Timeline -->
+    <div>
+      <div class="dash-section-title">📊 Recent Activity</div>
+      <div class="activity-feed">
+        {% if activities %}
+          {% for act in activities %}
+          <div class="activity-item">
+            <span class="activity-icon">
+              {% if act.activity_type == 'badge' %}🏅
+              {% elif act.activity_type == 'bookmark' %}⭐
+              {% elif act.activity_type == 'discussion' %}💬
+              {% elif act.activity_type == 'contribution' %}📤
+              {% elif act.activity_type == 'planner' %}📅
+              {% elif act.activity_type == 'annotation' %}📝
+              {% else %}✨{% endif %}
+            </span>
+            <div class="activity-detail">
+              {{ act.detail }}
+              {% if act.points_earned > 0 %}
+                <span class="activity-points">+{{ act.points_earned }} pts</span>
+              {% endif %}
+            </div>
+            <span class="activity-time">{{ act.created_at }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state-msg">No activity yet. Start browsing papers!</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Saved Papers -->
+    <div>
+      <div class="dash-section-title">⭐ Saved Papers ({{ bookmark_count }})</div>
+      {% if saved_papers %}
+        <div class="saved-papers-grid">
+          {% for paper in saved_papers %}
+          <a href="/view/{{ paper.id }}" target="_blank" class="saved-paper-card">
+            <div class="saved-paper-title">{{ paper.subject_name }}</div>
+            <div class="saved-paper-meta">
+              {{ paper.subject_code }} • {{ paper.exam_type }} • {{ paper.year }}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state-msg">No papers saved yet. Click ☆ on any paper card to save it!</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Downloaded Papers ──────────────────────────────────────────────── -->
+  <div class="dash-section-title" style="margin-top: 3rem;">📂 Downloaded Questions ({{ downloaded_papers|length }})</div>
+  {% if downloaded_papers %}
+    <div class="saved-papers-grid" id="downloaded-papers-container">
+      {% for paper in downloaded_papers %}
+      <div class="saved-paper-card" id="download-card-{{ paper.id }}" style="position:relative; display:flex; flex-direction:column; justify-content:space-between; min-height:100px; padding-right:2.8rem; cursor:default;">
+        <a href="/view/{{ paper.id }}" target="_blank" style="text-decoration:none; display:block;">
+          <div class="saved-paper-title">{{ paper.subject_name }}</div>
+          <div class="saved-paper-meta">
+            {{ paper.subject_code }} &middot; {{ paper.exam_type }} &middot; {{ paper.year }}
+          </div>
+        </a>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.6rem; border-top:1px solid rgba(255,255,255,0.04); padding-top:0.5rem;">
+          <a href="/download/{{ paper.id }}" class="dash-logout-btn" style="color:#34c759; background:rgba(52,199,89,0.08); border-color:rgba(52,199,89,0.2); font-size:0.68rem; padding:0.2rem 0.5rem; text-decoration:none;">
+            📥 Re-download
+          </a>
+        </div>
+        
+        <button onclick="deleteDownloadHistory(event, {{ paper.id }})" style="position:absolute; right:0.75rem; top:0.75rem; background:transparent; border:none; color:var(--text-lo); cursor:pointer; outline:none; font-size:0.95rem; width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:6px; transition:color 0.2s, background 0.2s;" onmouseover="this.style.color='#ff453a'; this.style.background='rgba(255, 69, 58, 0.1)';" onmouseout="this.style.color='var(--text-lo)'; this.style.background='transparent';" title="Delete Download Log">
+          🗑️
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state-msg" style="background:rgba(255,255,255,0.01); border:1px dashed rgba(255,255,255,0.05); border-radius:12px; padding:2rem; text-align:center;">
+      No download history yet.<br>
+      <a href="/papers" style="color:var(--primary); text-decoration:none; font-weight:600; font-size:0.8rem; margin-top:0.5rem; display:inline-block;">Browse and Download papers &rarr;</a>
+    </div>
+  {% endif %}
+
+  <!-- ── Mock Exam Attempts ──────────────────────────────────────────────── -->
+  <div class="dash-section-title" style="margin-top: 3rem;">📝 Mock Exam Practice History</div>
+  {% if mock_attempts %}
+    <div class="saved-papers-grid" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));">
+      {% for attempt in mock_attempts %}
+      <div class="saved-paper-card" id="mock-card-{{ attempt.id }}" style="position:relative; display:flex; flex-direction:column; justify-content:space-between; min-height:130px; cursor:default;">
+        <div>
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem; margin-bottom:0.5rem;">
+            <span class="badge" style="font-size:0.6rem; padding:0.15rem 0.4rem; border-radius:4px; text-transform:uppercase; font-weight:700;
+              {% if attempt.is_submitted %}
+                background:rgba(16,185,129,0.12); color:#10b981; border-left: 2px solid var(--success);
+              {% else %}
+                background:rgba(245,158,11,0.12); color:#fde047; border-left: 2px solid var(--accent);
+              {% endif %}">
+              {{ 'Completed' if attempt.is_submitted else 'In Progress' }}
+            </span>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <span style="font-size:0.68rem; color:var(--text-lo);">{{ attempt.created_at }}</span>
+              <button onclick="deleteMockAttempt(event, {{ attempt.id }})" style="background:transparent; border:none; color:var(--text-lo); cursor:pointer; font-size:0.78rem; display:flex; align-items:center; justify-content:center; padding:0.1rem; border-radius:4px; transition:color 0.2s;" onmouseover="this.style.color='#ff453a';" onmouseout="this.style.color='var(--text-lo)';" title="Delete attempt">
+                🗑️
+              </button>
+            </div>
+          </div>
+          <div class="saved-paper-title" style="white-space:normal; font-size:0.85rem; line-height:1.45; margin-bottom:0.15rem; font-weight:700;">
+            {{ attempt.paper.subject_name }}
+          </div>
+          <div class="saved-paper-meta">
+            {{ attempt.paper.subject_code }} &middot; {{ attempt.paper.exam_type }} &middot; {{ attempt.paper.year }}
+          </div>
+        </div>
+        
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:0.75rem; border-top:1px solid rgba(255,255,255,0.04); padding-top:0.6rem;">
+          <span style="font-size:0.72rem; color:var(--text-mid);">
+            ⏱ {% if attempt.time_spent >= 3600 %}{{ (attempt.time_spent / 3600)|int }}h {% endif %}{{ ((attempt.time_spent % 3600) / 60)|int }}m spent
+          </span>
+          {% if attempt.is_submitted %}
+            <a href="/student/mock/result/{{ attempt.id }}" class="dash-logout-btn" style="color:var(--primary); background:rgba(79,70,229,0.08); border-color:rgba(79,70,229,0.2); font-size:0.7rem; padding:0.25rem 0.65rem; text-decoration:none;">
+              👁 View solutions
+            </a>
+          {% else %}
+            <a href="/student/mock/{{ attempt.paper_id }}" class="dash-logout-btn" style="color:var(--accent); background:rgba(245,158,11,0.08); border-color:rgba(245,158,11,0.2); font-size:0.7rem; padding:0.25rem 0.65rem; text-decoration:none;">
+              ▶ Resume practice
+            </a>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state-msg" style="background:rgba(255,255,255,0.01); border:1px dashed rgba(255,255,255,0.05); border-radius:12px; padding:2rem; text-align:center;">
+      You haven't practiced any mock exams yet.<br>
+      <a href="/papers" style="color:var(--primary); text-decoration:none; font-weight:600; font-size:0.8rem; margin-top:0.5rem; display:inline-block;">Select a Question Paper to Begin &rarr;</a>
+    </div>
+  {% endif %}
+
+</div>
+
+<script>
+// Sync localStorage bookmarks to server when dashboard loads
+(async function syncBookmarks() {
+  const localBookmarks = JSON.parse(localStorage.getItem('bookmarked_papers') || '[]');
+  if (localBookmarks.length === 0) return;
+
+  try {
+    const res = await fetch('/api/student/bookmarks/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: localBookmarks })
+    });
+    const data = await res.json();
+    if (data.success && data.synced > 0) {
+      console.log(`Synced ${data.synced} bookmarks to server.`);
+    }
+  } catch(e) {
+    console.error('Bookmark sync error:', e);
+  }
+})();
+
+function showToastNotification(msg) {
+  if (!document.getElementById('toast-style-def')) {
+    const styleEl = document.createElement('style');
+    styleEl.id = 'toast-style-def';
+    styleEl.textContent = `
+      .toast-popup {
+        position: fixed;
+        bottom: 24px;
+        right: 24px;
+        background: rgba(13, 19, 32, 0.9);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-left: 4px solid var(--primary);
+        border-radius: 12px;
+        padding: 0.8rem 1.2rem;
+        color: var(--text-hi);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-size: 0.82rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        z-index: 99999;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+        transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .toast-popup.show {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = 'toast-popup';
+  toast.innerHTML = `<span>🗑️</span> <span>${msg}</span>`;
+  document.body.appendChild(toast);
+
+  setTimeout(() => toast.classList.add('show'), 50);
+
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+function showCustomConfirm(message, onConfirm) {
+  let overlay = document.getElementById('custom-confirm-overlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'custom-confirm-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 7, 18, 0.6);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 100000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+    `;
+    
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      .confirm-modal {
+        background: rgba(13, 19, 32, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 1.75rem;
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+        transform: translateY(20px) scale(0.95);
+        transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+        font-family: 'Plus Jakarta Sans', sans-serif;
+      }
+      #custom-confirm-overlay.active {
+        opacity: 1;
+      }
+      #custom-confirm-overlay.active .confirm-modal {
+        transform: translateY(0) scale(1);
+      }
+      .confirm-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        color: var(--text-hi);
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+      }
+      .confirm-msg {
+        font-size: 0.88rem;
+        color: var(--text-mid);
+        line-height: 1.5;
+        margin-bottom: 1.5rem;
+      }
+      .confirm-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+      }
+      .confirm-btn {
+        padding: 0.65rem 1.5rem;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.1s;
+        border: none;
+      }
+      .confirm-btn-yes {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+      }
+      .confirm-btn-yes:hover {
+        filter: brightness(1.15);
+      }
+      .confirm-btn-no {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--text-mid);
+      }
+      .confirm-btn-no:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text-hi);
+      }
+      .confirm-btn:active {
+        transform: scale(0.97);
+      }
+    `;
+    document.head.appendChild(styleEl);
+    
+    const modal = document.createElement('div');
+    modal.className = 'confirm-modal';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  }
+
+  const modal = overlay.querySelector('.confirm-modal');
+  modal.innerHTML = `
+    <div class="confirm-title">⚠️ Confirm Deletion</div>
+    <div class="confirm-msg">${message}</div>
+    <div class="confirm-actions">
+      <button class="confirm-btn confirm-btn-no" id="confirm-btn-cancel">Cancel</button>
+      <button class="confirm-btn confirm-btn-yes" id="confirm-btn-ok">Delete</button>
+    </div>
+  `;
+
+  overlay.style.display = 'flex';
+  void overlay.offsetWidth;
+  overlay.classList.add('active');
+
+  const btnCancel = document.getElementById('confirm-btn-cancel');
+  const btnOk = document.getElementById('confirm-btn-ok');
+
+  function closeConfirm() {
+    overlay.classList.remove('active');
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 250);
+  }
+
+  btnCancel.onclick = () => {
+    closeConfirm();
+  };
+
+  btnOk.onclick = () => {
+    closeConfirm();
+    onConfirm();
+  };
+}
+
+async function deleteDownloadHistory(e, paperId) {
+  e.preventDefault();
+  showCustomConfirm("Are you sure you want to remove this paper from your download history?", async () => {
+    try {
+      const res = await fetch(`/api/student/downloads/delete/${paperId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        const card = document.getElementById(`download-card-${paperId}`);
+        if (card) {
+          card.style.transition = 'opacity 0.3s, transform 0.3s';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.9)';
+          setTimeout(() => {
+            card.remove();
+            const container = document.getElementById('downloaded-papers-container');
+            if (container && container.children.length === 0) {
+              window.location.reload();
+            }
+          }, 300);
+        }
+        showToastNotification("Download history deleted successfully.");
+      } else {
+        alert("Failed to delete download record.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+}
+
+async function deleteMockAttempt(e, attemptId) {
+  e.preventDefault();
+  showCustomConfirm("Are you sure you want to delete this mock exam practice attempt?", async () => {
+    try {
+      const res = await fetch(`/api/student/mock/delete/${attemptId}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (data.success) {
+        const card = document.getElementById(`mock-card-${attemptId}`);
+        if (card) {
+          card.style.transition = 'opacity 0.3s, transform 0.3s';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.9)';
+          setTimeout(() => {
+            card.remove();
+          }, 300);
+        }
+        showToastNotification("Mock exam practice deleted successfully.");
+      } else {
+        alert("Failed to delete mock attempt.");
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  });
+}
+</script>
+{% endblock %}

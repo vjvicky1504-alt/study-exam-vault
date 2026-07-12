@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+{% block title %}Study Planner — {{ student.display_name or student.username }}{% endblock %}
+
+{% block content %}
+<style>
+  .planner-page {
+    padding: 2rem 2rem 4rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .planner-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  @keyframes fadeSlideUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .planner-header h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-hi);
+  }
+  .planner-header h1 span {
+    background: linear-gradient(135deg, var(--apple-blue), var(--apple-purple));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .planner-create-btn {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--apple-blue), var(--apple-indigo));
+    border: none;
+    border-radius: 12px;
+    padding: 0.7rem 1.25rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.3);
+    transition: filter 0.2s, transform 0.15s;
+  }
+  .planner-create-btn:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
+  }
+
+  /* Create Plan Modal */
+  .plan-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+  }
+  .plan-modal-overlay.open { display: flex; }
+
+  .plan-modal {
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: rgba(8, 12, 24, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 2rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: fadeSlideUp 0.3s ease both;
+  }
+
+  .plan-modal h2 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--text-hi);
+    margin-bottom: 1.5rem;
+  }
+
+  .plan-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+  }
+  .plan-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .plan-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    color: var(--text-hi);
+    padding: 0.65rem 0.85rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.22s;
+  }
+  .plan-input:focus { border-color: var(--apple-blue); }
+  .plan-input::placeholder { color: var(--text-lo); }
+
+  /* Tasks Builder */
+  .tasks-builder {
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.15);
+  }
+  .tasks-builder-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-mid);
+    margin-bottom: 0.75rem;
+  }
+
+  .task-entry {
+    display: grid;
+    grid-template-columns: 1fr 120px 80px 30px;
+    gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .task-entry input, .task-entry select {
+    background: rgba(0,0,0,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 8px;
+    color: var(--text-hi);
+    padding: 0.45rem 0.55rem;
+    font-size: 0.78rem;
+    outline: none;
+  }
+  .task-entry select option { background: #0b0f19; }
+  .task-remove-btn {
+    background: none;
+    border: none;
+    color: #ff453a;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+  }
+
+  .add-task-btn {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--apple-blue);
+    background: none;
+    border: 1px dashed rgba(0, 122, 255, 0.3);
+    border-radius: 8px;
+    padding: 0.45rem 0.75rem;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s;
+  }
+  .add-task-btn:hover { background: rgba(0, 122, 255, 0.05); }
+
+  .plan-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  .plan-cancel-btn {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-mid);
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 0.55rem 1rem;
+    cursor: pointer;
+  }
+  .plan-save-btn {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--apple-blue), var(--apple-indigo));
+    border: none;
+    border-radius: 10px;
+    padding: 0.55rem 1.25rem;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,122,255,0.25);
+  }
+
+  /* Plan Cards */
+  .plans-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .plan-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 1.25rem;
+    animation: fadeSlideUp 0.4s ease both;
+  }
+
+  .plan-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+  }
+  .plan-card-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-hi);
+  }
+  .plan-card-meta {
+    font-size: 0.72rem;
+    color: var(--text-lo);
+  }
+  .plan-delete-btn {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #ff453a;
+    background: rgba(255,69,58,0.08);
+    border: 1px solid rgba(255,69,58,0.15);
+    border-radius: 8px;
+    padding: 0.3rem 0.65rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .plan-delete-btn:hover { background: rgba(255,69,58,0.18); }
+
+  /* Progress bar */
+  .plan-progress {
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  .plan-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--apple-blue), #34c759);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+  }
+
+  /* Task items in plan card */
+  .plan-tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .plan-task-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.65rem;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.15);
+    font-size: 0.82rem;
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .plan-task-item:hover { background: rgba(0, 0, 0, 0.25); }
+  .plan-task-item.completed {
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+  .plan-task-checkbox {
+    width: 18px; height: 18px;
+    border-radius: 5px;
+    border: 2px solid rgba(255,255,255,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .plan-task-item.completed .plan-task-checkbox {
+    background: #34c759;
+    border-color: #34c759;
+    color: #fff;
+  }
+  .plan-task-date {
+    font-size: 0.7rem;
+    color: var(--text-lo);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .plan-task-priority {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+  .plan-task-priority.high { background: rgba(255,69,58,0.15); color: #ff6b6b; }
+  .plan-task-priority.medium { background: rgba(255,149,0,0.15); color: #ff9500; }
+  .plan-task-priority.low { background: rgba(52,199,89,0.15); color: #34c759; }
+
+  .empty-planner {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-lo);
+    font-size: 0.9rem;
+  }
+  .empty-planner .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+</style>
+
+<div class="planner-page">
+
+  <div class="planner-header">
+    <div>
+      <h1>📅 <span>Study Planner</span></h1>
+      <p style="color: var(--text-mid); font-size: 0.85rem; margin-top: 0.25rem;">Organize your exam preparation with personalized study plans</p>
+    </div>
+    <button class="planner-create-btn" onclick="openPlanModal()">+ Create Plan</button>
+  </div>
+
+  <!-- ── Plan Cards ──────────────────────────────────────────────────────── -->
+  <div class="plans-grid" id="plansGrid">
+    {% if plans %}
+      {% for plan in plans %}
+      <div class="plan-card" id="plan-{{ plan.id }}">
+        <div class="plan-card-header">
+          <div>
+            <div class="plan-card-title">{{ plan.title }}</div>
+            <div class="plan-card-meta">
+              {% if plan.exam_date %}Exam: {{ plan.exam_date }} • {% endif %}
+              Created {{ plan.created_at }}
+            </div>
+          </div>
+          <button class="plan-delete-btn" onclick="deletePlan({{ plan.id }})">🗑 Delete</button>
+        </div>
+
+        {% set total = plan.tasks|length %}
+        {% set completed = plan.tasks|selectattr('is_completed')|list|length %}
+        {% set pct = ((completed / total * 100)|int) if total > 0 else 0 %}
+        <div class="plan-progress">
+          <div class="plan-progress-bar" style="width: {{ pct }}%;"></div>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-lo); margin-bottom: 0.75rem; margin-top: -0.5rem;">
+          {{ completed }}/{{ total }} tasks completed ({{ pct }}%)
+        </div>
+
+        <div class="plan-tasks-list">
+          {% for task in plan.tasks %}
+          <div class="plan-task-item {{ 'completed' if task.is_completed else '' }}"
+               onclick="toggleTask({{ task.id }}, this)">
+            <div class="plan-task-checkbox">{{ '✓' if task.is_completed else '' }}</div>
+            <span>{{ task.title }}</span>
+            {% if task.priority != 'medium' %}
+              <span class="plan-task-priority {{ task.priority }}">{{ task.priority }}</span>
+            {% endif %}
+            {% if task.scheduled_date %}
+              <span class="plan-task-date">{{ task.scheduled_date }}</span>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-planner">
+        <div class="icon">📋</div>
+        <p>No study plans yet. Create one to organize your exam preparation!</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── Create Plan Modal ─────────────────────────────────────────────────── -->
+<div class="plan-modal-overlay" id="planModal">
+  <div class="plan-modal">
+    <h2>📅 Create Study Plan</h2>
+
+    <div class="plan-field">
+      <label class="plan-label" for="planTitle">Plan Title *</label>
+      <input type="text" id="planTitle" class="plan-input" placeholder="e.g. Semester 4 Final Exam Prep" />
+    </div>
+
+    <div class="plan-field">
+      <label class="plan-label" for="planExamDate">Exam Date (Optional)</label>
+      <input type="date" id="planExamDate" class="plan-input" />
+    </div>
+
+    <div class="tasks-builder">
+      <div class="tasks-builder-title">📝 Study Tasks</div>
+      <div id="tasksList">
+        <div class="task-entry">
+          <input type="text" placeholder="Task title" class="task-title-input" />
+          <input type="date" class="task-date-input" />
+          <select class="task-priority-input">
+            <option value="low">Low</option>
+            <option value="medium" selected>Med</option>
+            <option value="high">High</option>
+          </select>
+          <button class="task-remove-btn" onclick="this.parentElement.remove()">✕</button>
+        </div>
+      </div>
+      <button class="add-task-btn" onclick="addTaskEntry()">+ Add Task</button>
+    </div>
+
+    <div class="plan-modal-actions">
+      <button class="plan-cancel-btn" onclick="closePlanModal()">Cancel</button>
+      <button class="plan-save-btn" onclick="savePlan()">Create Plan</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function openPlanModal() {
+  document.getElementById('planModal').classList.add('open');
+}
+function closePlanModal() {
+  document.getElementById('planModal').classList.remove('open');
+}
+
+function addTaskEntry() {
+  const list = document.getElementById('tasksList');
+  const entry = document.createElement('div');
+  entry.className = 'task-entry';
+  entry.innerHTML = `
+    <input type="text" placeholder="Task title" class="task-title-input" />
+    <input type="date" class="task-date-input" />
+    <select class="task-priority-input">
+      <option value="low">Low</option>
+      <option value="medium" selected>Med</option>
+      <option value="high">High</option>
+    </select>
+    <button class="task-remove-btn" onclick="this.parentElement.remove()">✕</button>
+  `;
+  list.appendChild(entry);
+}
+
+async function savePlan() {
+  const title = document.getElementById('planTitle').value.trim();
+  const examDate = document.getElementById('planExamDate').value;
+
+  if (!title) {
+    alert('Please enter a plan title.');
+    return;
+  }
+
+  const taskEntries = document.querySelectorAll('.task-entry');
+  const tasks = [];
+  taskEntries.forEach(entry => {
+    const t = entry.querySelector('.task-title-input').value.trim();
+    if (t) {
+      tasks.push({
+        title: t,
+        scheduled_date: entry.querySelector('.task-date-input').value || null,
+        priority: entry.querySelector('.task-priority-input').value,
+      });
+    }
+  });
+
+  try {
+    const res = await fetch('/api/student/planner/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, exam_date: examDate, tasks })
+    });
+    const data = await res.json();
+    if (data.success) {
+      window.location.reload();
+    } else {
+      alert(data.error || 'Failed to create plan.');
+    }
+  } catch(e) {
+    alert('Network error. Please try again.');
+  }
+}
+
+async function toggleTask(taskId, el) {
+  try {
+    const res = await fetch('/api/student/planner/task/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ task_id: taskId })
+    });
+    const data = await res.json();
+    if (data.success) {
+      el.classList.toggle('completed');
+      const checkbox = el.querySelector('.plan-task-checkbox');
+      checkbox.textContent = data.is_completed ? '✓' : '';
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+
+async function deletePlan(planId) {
+  if (!confirm('Delete this study plan?')) return;
+
+  try {
+    const res = await fetch(`/api/student/planner/${planId}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if (data.success) {
+      const card = document.getElementById(`plan-${planId}`);
+      if (card) {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(-10px)';
+        setTimeout(() => card.remove(), 300);
+      }
+    }
+  } catch(e) {
+    console.error(e);
+  }
+}
+</script>
+{% endblock %}

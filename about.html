@@ -1,0 +1,342 @@
+{% extends "base.html" %}
+{% block title %}About — Question Hub Platform{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --text-bright: #f8fafc;
+    --text-mid: #94a3b8;
+    --text-dim: #64748b;
+  }
+
+  .page-wrap {
+    position: relative;
+    z-index: 1;
+    min-height: calc(100vh - 120px);
+    padding: 7rem 1.5rem 6rem;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 3rem;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  .section-header-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08), transparent);
+  }
+  .section-header-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--primary);
+  }
+
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1.8fr 1.2fr;
+    gap: 2.5rem;
+    animation: fadeSlideUp 0.6s 0.1s ease both;
+  }
+
+  .main-card {
+    background: rgba(13, 19, 32, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: 20px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  }
+
+  .sidebar-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .side-panel {
+    background: rgba(13, 19, 32, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 16px;
+    padding: 1.8rem;
+  }
+
+  .about-h2 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 750;
+    font-size: 1.6rem;
+    color: var(--text-bright);
+    margin-bottom: 1.2rem;
+    letter-spacing: -0.01em;
+  }
+
+  .about-h3 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: var(--text-bright);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .about-p {
+    color: var(--text-mid);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.92rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+  }
+
+  .feature-item {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.6rem;
+    align-items: flex-start;
+  }
+
+  .feature-icon-box {
+    width: 36px;
+    height: 36px;
+    background: rgba(79, 70, 229, 0.12);
+    border: 1px solid rgba(79, 70, 229, 0.25);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .feature-text {
+    flex: 1;
+  }
+
+  .feature-title {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-bright);
+    margin-bottom: 0.2rem;
+  }
+
+  .feature-desc {
+    font-size: 0.82rem;
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+
+  .access-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    padding: 0.65rem 0.95rem;
+    border-radius: 10px;
+    margin-bottom: 0.65rem;
+  }
+
+  .access-name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-bright);
+  }
+
+  .access-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    padding: 0.15rem 0.5rem;
+    border-radius: 5px;
+  }
+
+  .label-free { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+  .label-auth { background: rgba(79, 70, 229, 0.12); color: #a5b4fc; }
+  .label-admin { background: rgba(245, 158, 11, 0.12); color: #fde047; }
+
+  .access-list {
+    margin: 0;
+    padding: 0 0 0 1.1rem;
+    list-style-type: square;
+    color: var(--text-mid);
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 2.2rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    transition: opacity 0.2s;
+    animation: fadeSlideUp 0.5s 0.2s ease both;
+  }
+  .back-link:hover { opacity: 0.85; }
+  .back-link::before {
+    content: '←';
+    font-size: 1rem;
+  }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 860px) {
+    .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+  }
+
+  @media (max-width: 640px) {
+    .main-card { padding: 1.8rem 1.4rem; border-radius: 16px; }
+    .page-wrap { padding-top: 5.5rem; }
+    .about-h2 { font-size: 1.4rem; }
+    
+    .main-card, .side-panel {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: #0d1320 !important;
+    }
+  }
+</style>
+
+<div class="page-wrap">
+
+  <!-- Section header -->
+  <div class="section-header">
+    <div class="section-header-line"></div>
+    <span class="section-header-title">About Platform</span>
+    <div class="section-header-line" style="background: linear-gradient(90deg, transparent, rgba(79, 70, 229, 0.3));"></div>
+  </div>
+
+  <div class="about-grid">
+
+    <!-- Left side: Core Info & Features -->
+    <div class="main-card">
+      <h2 class="about-h2">About Question Hub</h2>
+      <p class="about-p">
+        Question Hub is a modern, high-performance academic resource directory designed specifically for the students of H.H. THE RAJAH'S College. It centralizes previous semesters' model and university examination papers across all major departments, allowing students to access, prepare, and excel in their studies.
+      </p>
+
+      <div style="margin-top: 2.2rem;">
+        <h3 class="about-h3" style="margin-bottom:1.5rem;">Core Features</h3>
+
+        <!-- Feature 1 -->
+        <div class="feature-item">
+          <div class="feature-icon-box">🔍</div>
+          <div class="feature-text">
+            <h4 class="feature-title">Smart Search & Instant Filtering</h4>
+            <p class="feature-desc">Filter the entire database dynamically by subject names, course codes, departments, semesters, and years without refreshing the page.</p>
+          </div>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="feature-item">
+          <div class="feature-icon-box">📅</div>
+          <div class="feature-text">
+            <h4 class="feature-title">Interactive Study Planner</h4>
+            <p class="feature-desc">Register a student account to set study milestones, compile customized checklists for specific subjects, and track preparation statuses.</p>
+          </div>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="feature-item">
+          <div class="feature-icon-box">🏆</div>
+          <div class="feature-text">
+            <h4 class="feature-title">Gamified Badges & Contributions</h4>
+            <p class="feature-desc">Upload verified question papers to earn recognition points, rank up on the global Leaderboard, and unlock achievement badges for helping peers.</p>
+          </div>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="feature-item">
+          <div class="feature-icon-box">👁</div>
+          <div class="feature-text">
+            <h4 class="feature-title">Dual-Screen Optimized Previews</h4>
+            <p class="feature-desc">Read PDFs directly with an intelligent reader which automatically optimizes rendering for both desktop and mobile web configurations.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right side: Access levels & Rules -->
+    <div class="sidebar-card">
+
+      <!-- Panel: Access levels -->
+      <div class="side-panel">
+        <h3 class="about-h3" style="margin-bottom:1.2rem;">Access Tiers</h3>
+
+        <!-- Guest Access -->
+        <div class="access-pill">
+          <span class="access-name">Guest Viewer</span>
+          <span class="access-label label-free">Public</span>
+        </div>
+        <ul class="access-list" style="margin-bottom: 1.4rem;">
+          <li>Search any question paper</li>
+          <li>Interactive PDF preview</li>
+          <li>Free file download</li>
+        </ul>
+
+        <!-- Registered Student Access -->
+        <div class="access-pill">
+          <span class="access-name">Student Account</span>
+          <span class="access-label label-auth">Member</span>
+        </div>
+        <ul class="access-list" style="margin-bottom: 1.4rem;">
+          <li>Access personalized Planner</li>
+          <li>Bookmark/Save papers</li>
+          <li>Submit new question papers</li>
+          <li>Earn badges & points</li>
+          <li>Post on paper forums</li>
+        </ul>
+
+        <!-- Admin Access -->
+        <div class="access-pill">
+          <span class="access-name">Administrator</span>
+          <span class="access-label label-admin">Control</span>
+        </div>
+        <ul class="access-list">
+          <li>Review and approve uploads</li>
+          <li>Manage badges & content listings</li>
+          <li>Platform traffic statistics</li>
+        </ul>
+
+      </div>
+
+      <!-- Panel: Contribution guidelines -->
+      <div class="side-panel">
+        <h3 class="about-h3" style="margin-bottom:0.6rem;">Guidelines</h3>
+        <p class="about-p" style="font-size:0.8rem; line-height:1.6; margin-bottom:0;">
+          All contributions must be clear, complete PDF files with visible course details. Uploaded papers go through administrator review before appearing on the main listings page to maintain repository quality.
+        </p>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Back link -->
+  <a href="/" class="back-link">Back to Question Hub</a>
+
+</div>
+{% endblock %}

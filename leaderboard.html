@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — Top Students{% endblock %}
+
+{% block content %}
+<style>
+  .lb-page {
+    padding: 2rem 2rem 4rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .lb-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  @keyframes fadeSlideUp {
+    from { opacity:0; transform: translateY(20px); }
+    to   { opacity:1; transform: translateY(0); }
+  }
+
+  .lb-header h1 {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--apple-blue) 0%, var(--apple-purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.4rem;
+  }
+  .lb-header p {
+    color: var(--text-mid);
+    font-size: 0.9rem;
+  }
+
+  /* Podium */
+  .lb-podium {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 3rem;
+    min-height: 220px;
+  }
+
+  .podium-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 1.5rem 1.25rem 1.25rem;
+    text-align: center;
+    width: 180px;
+    position: relative;
+    transition: transform 0.3s, border-color 0.3s;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+  .podium-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.15);
+  }
+  .podium-card.gold {
+    border-color: rgba(255, 215, 0, 0.3);
+    background: rgba(255, 215, 0, 0.04);
+    order: 2;
+    min-height: 200px;
+    animation-delay: 0.1s;
+  }
+  .podium-card.silver {
+    border-color: rgba(192, 192, 192, 0.2);
+    background: rgba(192, 192, 192, 0.03);
+    order: 1;
+    min-height: 170px;
+    animation-delay: 0.15s;
+  }
+  .podium-card.bronze {
+    border-color: rgba(205, 127, 50, 0.2);
+    background: rgba(205, 127, 50, 0.03);
+    order: 3;
+    min-height: 150px;
+    animation-delay: 0.2s;
+  }
+
+  .podium-rank {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .podium-avatar {
+    width: 48px; height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 auto 0.6rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+
+  .podium-name {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-hi);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .podium-points {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--apple-blue);
+    margin-top: 0.25rem;
+  }
+
+  /* Table */
+  .lb-table-wrap {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .lb-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .lb-table th {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-lo);
+    padding: 0.85rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .lb-table td {
+    padding: 0.75rem 1rem;
+    font-size: 0.85rem;
+    color: var(--text-mid);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    transition: background 0.2s;
+  }
+  .lb-table tr:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .lb-table tr.current-user td {
+    background: rgba(0, 122, 255, 0.06);
+    color: var(--text-hi);
+  }
+
+  .lb-rank-cell {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: var(--text-hi);
+    width: 50px;
+  }
+
+  .lb-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .lb-mini-avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .lb-student-name {
+    font-weight: 600;
+    color: var(--text-hi);
+  }
+  .lb-student-username {
+    font-size: 0.72rem;
+    color: var(--text-lo);
+  }
+
+  .lb-points-cell {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--primary);
+  }
+
+  .lb-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-lo);
+    font-size: 0.9rem;
+  }
+
+  @media (max-width: 520px) {
+    .lb-podium { flex-direction: column; align-items: center; }
+    .podium-card { width: 100%; max-width: 280px; min-height: auto !important; order: unset !important; }
+    .podium-card.gold { order: -1 !important; }
+  }
+</style>
+
+<div class="lb-page">
+
+  <div class="lb-header">
+    <h1>🏆 Leaderboard</h1>
+    <p>Top students ranked by their contribution, engagement, and study points</p>
+  </div>
+
+  {% if students|length >= 3 %}
+  <!-- ── Top 3 Podium ─────────────────────────────────────────────────────── -->
+  <div class="lb-podium">
+    <!-- Silver — 2nd Place -->
+    <div class="podium-card silver">
+      <div class="podium-rank">🥈</div>
+      <div class="podium-avatar" style="background: {{ students[1].avatar_color }};">{{ students[1].get_initials() }}</div>
+      <div class="podium-name">{{ students[1].display_name or students[1].username }}</div>
+      <div class="podium-points">{{ students[1].points }} pts</div>
+    </div>
+
+    <!-- Gold — 1st Place -->
+    <div class="podium-card gold">
+      <div class="podium-rank">🥇</div>
+      <div class="podium-avatar" style="background: {{ students[0].avatar_color }};">{{ students[0].get_initials() }}</div>
+      <div class="podium-name">{{ students[0].display_name or students[0].username }}</div>
+      <div class="podium-points">{{ students[0].points }} pts</div>
+    </div>
+
+    <!-- Bronze — 3rd Place -->
+    <div class="podium-card bronze">
+      <div class="podium-rank">🥉</div>
+      <div class="podium-avatar" style="background: {{ students[2].avatar_color }};">{{ students[2].get_initials() }}</div>
+      <div class="podium-name">{{ students[2].display_name or students[2].username }}</div>
+      <div class="podium-points">{{ students[2].points }} pts</div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Full Ranking Table ──────────────────────────────────────────────── -->
+  {% if students %}
+  <div class="lb-table-wrap">
+    <table class="lb-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Student</th>
+          <th>Points</th>
+          <th>Joined</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr class="{{ 'current-user' if current_student and current_student.id == s.id else '' }}">
+          <td class="lb-rank-cell">
+            {% if loop.index == 1 %}🥇
+            {% elif loop.index == 2 %}🥈
+            {% elif loop.index == 3 %}🥉
+            {% else %}#{{ loop.index }}
+            {% endif %}
+          </td>
+          <td>
+            <div class="lb-name-cell">
+              <div class="lb-mini-avatar" style="background: {{ s.avatar_color }};">{{ s.get_initials() }}</div>
+              <div>
+                <div class="lb-student-name">{{ s.display_name or s.username }}</div>
+                <div class="lb-student-username">@{{ s.username }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="lb-points-cell">{{ s.points }}</td>
+          <td style="font-size:0.78rem;">{{ s.created_at.strftime('%d %b %Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="lb-empty">
+    <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🏅</div>
+    <p>No students have registered yet. <a href="/student/register" style="color: var(--apple-blue);">Be the first!</a></p>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
